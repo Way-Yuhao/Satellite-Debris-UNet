@@ -20,7 +20,7 @@ indira_dataset_path = "/mnt/data1/yl241/datasets/Inria_Aerial/AerialImageDataset
 network_weight_path = "./weight/"
 version = None  # defined in main
 model_name = None  # defined in main
-num_workers_train = 0  # FIXME!!!!!!
+num_workers_train = 0  # FIXME!!!!!
 batch_size = 8
 
 "Hyper Parameters"

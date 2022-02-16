@@ -46,9 +46,16 @@ class ImageFolderInria(VisionDataset):
         return input_sample, label_sample
 
     def augment(self, input_, label):
-        input_, label = self.random_crop(input_, label)
-        input_, label = self.random_horizontal_flip(input_, label)
-        input_, label = self.random_rotation(input_, label)
+        # input_, label = self.random_crop(input_, label)
+        # input_, label = self.random_horizontal_flip(input_, label)
+        # input_, label = self.random_rotation(input_, label)
+
+        transforms = T.Compose([
+            T.ToTensor(),
+            T.RandomCrop((CROP_HEIGHT, CROP_WIDTH)),
+            T.RandomHorizontalFlip(p=0.5)
+        ])
+        input_, label = transforms(input_), transforms(label)
         return input_, label
 
     def normalize(self, input_, label):
