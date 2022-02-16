@@ -6,3 +6,5 @@ elif torch.cuda.device_count() == 1:
     CUDA_DEVICE = "cuda:0"  # for Miku
 else:
     CUDA_DEVICE = "cuda:6"  # for Yuhao
+
+CROP_WIDTH, CROP_HEIGHT = 512, 512
