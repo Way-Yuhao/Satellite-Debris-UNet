@@ -24,12 +24,12 @@ def cv_loader(path):
 
 class ImageFolderInria(VisionDataset):
 
-    def __init__(self, input_dir, label_dir, root: str):
-        super().__init__(root)
-        self.input_dir = input_dir
-        self.label_dir = label_dir
-        self.inputs = natsorted(os.listdir(input_dir))
-        self.labels = natsorted(os.listdir(label_dir))
+    def __init__(self, dataset_dir):
+        # super().__init__(root)
+        self.input_dir = p.join(dataset_dir, 'images')
+        self.label_dir = p.join(dataset_dir, 'gt')
+        self.inputs = natsorted(os.listdir(self.input_dir))
+        self.labels = natsorted(os.listdir(self.label_dir))
         assert(len(self.inputs) == len(self.labels),
                "ERROR: # of inputs ({})and # of labels ({})do not match.".format(len(self.inputs), len(self.labels)))
 
@@ -38,7 +38,7 @@ class ImageFolderInria(VisionDataset):
 
     def __getitem__(self, idx):
         input_sample = cv_loader(p.join(self.input_dir, self.inputs[idx]))
-        label_sample = cv_loader(p.join(self.label_dir, self.label[idx]))
+        label_sample = cv_loader(p.join(self.label_dir, self.labels[idx]))
 
         input_sample, label_sample = self.normalize(input_sample, label_sample)
         input_sample, label_sample = self.augment(input_sample, label_sample)
