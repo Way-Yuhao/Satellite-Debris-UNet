@@ -12,7 +12,7 @@ import numpy as np
 import cv2
 from matplotlib import pyplot as plt
 from tqdm import tqdm
-from ternausnet.models import UNet16
+from ternausnet.models import UNet16, UNet11
 from config import CUDA_DEVICE
 from customDataFolderInria import ImageFolderInria
 
@@ -25,7 +25,7 @@ num_workers_train = 8
 batch_size = 8
 
 "Hyper Parameters"
-init_lr = 5e-3
+init_lr = 1e-6
 epoch = 2000
 
 
@@ -88,15 +88,18 @@ def disp_plt(img, title="", idx=None):
 
 
 def tensorboard_vis(tb, ep, mode='train', input_=None, output=None, label=None):
+    tb.add_histogram("{}/output".format(mode), output, global_step=ep)
+    tb.add_histogram("{}/label".format(mode), label, global_step=ep)
     if input_ is not None:
         input_img_grid = torchvision.utils.make_grid(input_)
         tb.add_image("{}/input".format(mode), input_img_grid, global_step=ep)
     if output is not None:
         output_img_grid = torchvision.utils.make_grid(output)
-        tb.add_image("{}/outputs".format(mode), output_img_grid, global_step=ep)
+        tb.add_image("{}/output".format(mode), output_img_grid, global_step=ep)
     if label is not None:
         label_img_grid = torchvision.utils.make_grid(label)
         tb.add_image("{}/label".format(mode), label_img_grid, global_step=ep)
+    tb.flush()
     return
 
 
@@ -109,8 +112,8 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
 
     train_loader = load_data(p.join(indira_dataset_path, "train"))
     train_num_mini_batches = len(train_loader)
-    optimizer = optim.SGD(net.parameters(), lr=init_lr, momentum=.5)
-
+    # optimizer = optim.SGD(net.parameters(), lr=init_lr, momentum=.5)
+    optimizer = optim.Adam(net.parameters(), lr=init_lr)
     running_train_loss = 0.0
     train_input, train_output, train_label = None, None, None
     for ep in range(epoch):
@@ -131,7 +134,7 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
         print("train loss = {:.4}".format(cur_train_loss))
         tb.add_scalar('loss/train', cur_train_loss, ep)
 
-        if ep % 10 == 0:
+        if ep % 10 == 0 or True:
             tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_label)
 
     print("finished training")
@@ -141,10 +144,11 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
 
 def main():
     global version, model_name
-    model_name, version = "unet16", "v0.0.6"
+    model_name, version = "unet16", "v0.3.1-test2"
     param_to_load = None
     tb = SummaryWriter('./runs/' + model_name + '-' + version)
-    net = UNet16()
+    # net = UNet16(pretrained=True)
+    net = UNet16(pretrained=True)
     train(net, tb, load_weights=False, pre_trained_params_path=None)
     tb.close()
 

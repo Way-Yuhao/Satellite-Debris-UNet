@@ -174,7 +174,7 @@ class UNet16(nn.Module):
         self,
         num_classes: int = 1,
         num_filters: int = 32,
-        pretrained: bool = False,
+        pretrained: bool = True,
         is_deconv: bool = False,
     ):
         """
@@ -268,4 +268,7 @@ class UNet16(nn.Module):
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
         dec0 = self.dec0(dec1)
-        return torch.sigmoid(dec0)
+        # extra
+        dec0[dec0 >= 1.] = 1.
+        dec0[dec0 <= 0.] = 0.
+        return dec0
