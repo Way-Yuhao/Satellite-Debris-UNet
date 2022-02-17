@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
+import torchvision
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import cv2
@@ -86,9 +87,17 @@ def disp_plt(img, title="", idx=None):
     return
 
 
-def tensorboard_vis(tb, ep):
-    raise NotImplementedError()
-
+def tensorboard_vis(tb, ep, mode='train', input_=None, output=None, label=None):
+    if input_ is not None:
+        input_img_grid = torchvision.utils.make_grid(input_)
+        tb.add_image("{}/outputs".format(mode), input_img_grid, global_step=ep)
+    if output is not None:
+        output_img_grid = torchvision.utils.make_grid(output)
+        tb.add_image("{}/outputs".format(mode), output_img_grid, global_step=ep)
+    if label is not None:
+        label_img_grid = torchvision.utils.make_grid(label)
+        tb.add_image("{}/outputs".format(mode), label_img_grid, global_step=ep)
+    return
 
 def train(net, tb, load_weights, pre_trained_params_path=None):
     print_params()
@@ -102,16 +111,16 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
     optimizer = optim.SGD(net.parameters(), lr=init_lr, momentum=.5)
 
     running_train_loss = 0.0
-    train_output = None
+    train_input, train_output, train_label = None, None, None
     for ep in range(epoch):
         print("Epoch ", ep)
         train_iter = iter(train_loader)
         for _ in tqdm(range(train_num_mini_batches)):
-            input_, label = train_iter.next()
-            input_, label = input_.to(CUDA_DEVICE), label.to(CUDA_DEVICE)
+            train_input, train_label = train_iter.next()
+            train_input, train_label = train_input.to(CUDA_DEVICE), train_label.to(CUDA_DEVICE)
             # optimizer.zero_grad()
-            train_output = net(input_)
-            train_loss = compute_loss(train_output, label)
+            train_output = net(train_input)
+            train_loss = compute_loss(train_output, train_label)
             train_loss.backward()
             optimizer.step()
             running_train_loss += train_loss.item()
@@ -121,6 +130,9 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
         print("train loss = {:.4}".format(cur_train_loss))
         tb.add_scalar('loss/train', cur_train_loss, ep)
 
+        if ep % 10 == 0 or True:
+            tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_input)
+
     print("finished training")
     save_network_weights(net, ep="{}_FINAL".format(epoch))
     return
@@ -128,9 +140,9 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
 
 def main():
     global version, model_name
-    model_name, version = "unet16", "-v0.0.0"
+    model_name, version = "unet16", "v0.0.2"
     param_to_load = None
-    tb = SummaryWriter('./runs/' + model_name + version)
+    tb = SummaryWriter('./runs/' + model_name + '-' + version)
     net = UNet16()
     train(net, tb, load_weights=False, pre_trained_params_path=None)
     tb.close()
