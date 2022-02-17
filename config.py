@@ -7,4 +7,6 @@ elif torch.cuda.device_count() == 1:
 else:
     CUDA_DEVICE = "cuda:3"  # for Yuhao
 
-CROP_WIDTH, CROP_HEIGHT = 512, 512
+# CUDA_DEVICE = "cpu"
+
+CROP_WIDTH, CROP_HEIGHT = 256, 256

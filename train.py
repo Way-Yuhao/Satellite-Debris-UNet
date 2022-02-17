@@ -20,7 +20,7 @@ indira_dataset_path = "/mnt/data1/yl241/datasets/Inria_Aerial/AerialImageDataset
 network_weight_path = "./weight/"
 version = None  # defined in main
 model_name = None  # defined in main
-num_workers_train = 0  # FIXME!!!!!
+num_workers_train = 8
 batch_size = 8
 
 "Hyper Parameters"
@@ -36,7 +36,7 @@ def print_params():
 
 def load_data(dataset_path):
     data_loader = torch.utils.data.DataLoader(
-        ImageFolderInria(dataset_dir=dataset_path),
+        ImageFolderInria(root=dataset_path),
         batch_size=batch_size, num_workers=num_workers_train)
     return data_loader
 
@@ -108,7 +108,7 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
         train_iter = iter(train_loader)
         for _ in tqdm(range(train_num_mini_batches)):
             input_, label = train_iter.next()
-            input_ = input_.to(CUDA_DEVICE), label.to(CUDA_DEVICE)
+            input_, label = input_.to(CUDA_DEVICE), label.to(CUDA_DEVICE)
             # optimizer.zero_grad()
             train_output = net(input_)
             train_loss = compute_loss(train_output, label)

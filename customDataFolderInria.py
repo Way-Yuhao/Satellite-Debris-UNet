@@ -24,14 +24,14 @@ def cv_loader(path):
 
 class ImageFolderInria(VisionDataset):
 
-    def __init__(self, dataset_dir):
-        # super().__init__(root)
-        self.input_dir = p.join(dataset_dir, 'images')
-        self.label_dir = p.join(dataset_dir, 'gt')
+    def __init__(self, root: str):
+        super().__init__(root)
+        self.input_dir = p.join(root, 'images')
+        self.label_dir = p.join(root, 'gt')
         self.inputs = natsorted(os.listdir(self.input_dir))
         self.labels = natsorted(os.listdir(self.label_dir))
-        assert(len(self.inputs) == len(self.labels),
-               "ERROR: # of inputs ({})and # of labels ({})do not match.".format(len(self.inputs), len(self.labels)))
+        assert (len(self.inputs) == len(self.labels),
+                "ERROR: # of inputs ({})and # of labels ({})do not match.".format(len(self.inputs), len(self.labels)))
 
     def __len__(self):
         return len(self.inputs)
@@ -40,22 +40,26 @@ class ImageFolderInria(VisionDataset):
         input_sample = cv_loader(p.join(self.input_dir, self.inputs[idx]))
         label_sample = cv_loader(p.join(self.label_dir, self.labels[idx]))
 
+        transform = T.ToTensor()
+        input_sample, label_sample = transform(input_sample), transform(label_sample)
         input_sample, label_sample = self.normalize(input_sample, label_sample)
         input_sample, label_sample = self.augment(input_sample, label_sample)
 
-        return input_sample, label_sample
+        return input_sample, label_sample[0, :, :].unsqueeze(dim=0)
 
     def augment(self, input_, label):
-        # input_, label = self.random_crop(input_, label)
-        # input_, label = self.random_horizontal_flip(input_, label)
-        # input_, label = self.random_rotation(input_, label)
+        input_, label = self.random_crop(input_, label)
+        input_, label = self.random_horizontal_flip(input_, label)
+        input_, label = self.random_rotation(input_, label)
 
-        transforms = T.Compose([
-            T.ToTensor(),
-            T.RandomCrop((CROP_HEIGHT, CROP_WIDTH)),
-            T.RandomHorizontalFlip(p=0.5)
-        ])
-        input_, label = transforms(input_), transforms(label)
+        # transforms = T.Compose([
+        #     T.ToTensor(),
+        #     T.RandomCrop((CROP_HEIGHT, CROP_WIDTH)),
+        #     T.RandomHorizontalFlip(p=0.5),
+        #     T.ConvertImageDtype(torch.float32)
+        # ])
+        # input_, label = transforms(input_), transforms(label)
+
         return input_, label
 
     def normalize(self, input_, label):

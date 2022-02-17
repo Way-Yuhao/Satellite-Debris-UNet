@@ -250,7 +250,7 @@ class UNet16(nn.Module):
             128 + num_filters * 2, num_filters * 2 * 2, num_filters, is_deconv
         )
         self.dec1 = ConvRelu(64 + num_filters, num_filters)
-        self.final = nn.Conv2d(num_filters, num_classes, kernel_size=1)
+        self.dec0 = nn.Conv2d(num_filters, num_classes, kernel_size=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         conv1 = self.conv1(x)
@@ -267,4 +267,5 @@ class UNet16(nn.Module):
         dec3 = self.dec3(torch.cat([dec4, conv3], 1))
         dec2 = self.dec2(torch.cat([dec3, conv2], 1))
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
-        return self.final(dec1)
+        dec0 = self.dec0(dec1)
+        return torch.sigmoid(dec0)
