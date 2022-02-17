@@ -90,14 +90,15 @@ def disp_plt(img, title="", idx=None):
 def tensorboard_vis(tb, ep, mode='train', input_=None, output=None, label=None):
     if input_ is not None:
         input_img_grid = torchvision.utils.make_grid(input_)
-        tb.add_image("{}/outputs".format(mode), input_img_grid, global_step=ep)
+        tb.add_image("{}/input".format(mode), input_img_grid, global_step=ep)
     if output is not None:
         output_img_grid = torchvision.utils.make_grid(output)
         tb.add_image("{}/outputs".format(mode), output_img_grid, global_step=ep)
     if label is not None:
         label_img_grid = torchvision.utils.make_grid(label)
-        tb.add_image("{}/outputs".format(mode), label_img_grid, global_step=ep)
+        tb.add_image("{}/label".format(mode), label_img_grid, global_step=ep)
     return
+
 
 def train(net, tb, load_weights, pre_trained_params_path=None):
     print_params()
@@ -130,8 +131,8 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
         print("train loss = {:.4}".format(cur_train_loss))
         tb.add_scalar('loss/train', cur_train_loss, ep)
 
-        if ep % 10 == 0 or True:
-            tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_input)
+        if ep % 10 == 0:
+            tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_label)
 
     print("finished training")
     save_network_weights(net, ep="{}_FINAL".format(epoch))
@@ -140,7 +141,7 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
 
 def main():
     global version, model_name
-    model_name, version = "unet16", "v0.0.2"
+    model_name, version = "unet16", "v0.0.6"
     param_to_load = None
     tb = SummaryWriter('./runs/' + model_name + '-' + version)
     net = UNet16()

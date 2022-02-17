@@ -63,7 +63,7 @@ class ImageFolderInria(VisionDataset):
         return input_, label
 
     def normalize(self, input_, label):
-        input_ = input_ / 255.
+        # input_ = input_ / 255.  # FIXME
         return input_, label
 
     def rotate(self, input_, label):
