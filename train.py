@@ -88,18 +88,17 @@ def disp_plt(img, title="", idx=None):
 
 
 def tensorboard_vis(tb, ep, mode='train', input_=None, output=None, label=None):
-    tb.add_histogram("output".format(mode), output, global_step=ep)
-    tb.add_histogram("label".format(mode), label, global_step=ep)
+    tb.add_histogram("{}/output_".format(mode), output, global_step=ep)
+    tb.add_histogram("{}/label_".format(mode), label, global_step=ep)
     if input_ is not None:
         input_img_grid = torchvision.utils.make_grid(input_)
-        tb.add_image("input".format(mode), input_img_grid, global_step=ep)
+        tb.add_image("{}/input".format(mode), input_img_grid, global_step=ep)
     if output is not None:
         output_img_grid = torchvision.utils.make_grid(output)
-        tb.add_image("output".format(mode), output_img_grid, global_step=ep)
+        tb.add_image("{}/output".format(mode), output_img_grid, global_step=ep)
     if label is not None:
         label_img_grid = torchvision.utils.make_grid(label)
-        tb.add_image("label".format(mode), label_img_grid, global_step=ep)
-    tb.flush()
+        tb.add_image("{}/label".format(mode), label_img_grid, global_step=ep)
     return
 
 
@@ -135,7 +134,7 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
         tb.add_scalar('loss/train', cur_train_loss, ep)
 
         if ep % 10 == 0 or True:
-            tensorboard_vis(tb, ep, mode='training', input_=train_input, output=train_output, label=train_label)
+            tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_label)
 
     print("finished training")
     save_network_weights(net, ep="{}_FINAL".format(epoch))
@@ -144,7 +143,7 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
 
 def main():
     global version, model_name
-    model_name, version = "unet16", "v0.3.2-test2"
+    model_name, version = "unet16", "v0.3.3-test13"
     param_to_load = None
     tb = SummaryWriter('./runs/' + model_name + '-' + version)
     # net = UNet16(pretrained=True)
