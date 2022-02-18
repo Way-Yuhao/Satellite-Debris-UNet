@@ -170,15 +170,8 @@ class DecoderBlockV2(nn.Module):
 
 
 class UNet16(nn.Module):
-    def __init__(
-        self,
-        num_classes: int = 1,
-        num_filters: int = 32,
-        pretrained: bool = True,
-        is_deconv: bool = False,
-    ):
+    def __init__(self, num_classes: int = 1, num_filters: int = 32, pretrained: bool = True, is_deconv: bool = False,):
         """
-
         Args:
             num_classes:
             num_filters:
@@ -198,13 +191,9 @@ class UNet16(nn.Module):
 
         self.relu = nn.ReLU(inplace=True)
 
-        self.conv1 = nn.Sequential(
-            self.encoder[0], self.relu, self.encoder[2], self.relu
-        )
+        self.conv1 = nn.Sequential(self.encoder[0], self.relu, self.encoder[2], self.relu)
 
-        self.conv2 = nn.Sequential(
-            self.encoder[5], self.relu, self.encoder[7], self.relu
-        )
+        self.conv2 = nn.Sequential(self.encoder[5], self.relu, self.encoder[7], self.relu)
 
         self.conv3 = nn.Sequential(
             self.encoder[10],
@@ -269,6 +258,7 @@ class UNet16(nn.Module):
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
         dec0 = self.dec0(dec1)
         # extra
-        dec0[dec0 >= 1.] = 1.
-        dec0[dec0 <= 0.] = 0.
+        # output = torch.sigmoid(dec0)
+        dec0[dec0 >= .5] = 1.
+        dec0[dec0 <= .5] = 0.
         return dec0
