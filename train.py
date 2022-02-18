@@ -28,7 +28,7 @@ num_workers_train = 16
 batch_size = 8
 
 "Hyper Parameters"
-init_lr = 1e-4
+init_lr = 1e-3
 epoch = 2000
 PROB_THRESHOLD = .5
 

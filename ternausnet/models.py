@@ -258,7 +258,7 @@ class UNet16(nn.Module):
         dec1 = self.dec1(torch.cat([dec2, conv1], 1))
         dec0 = self.dec0(dec1)
         # extra
-        # output = torch.sigmoid(dec0)
-        dec0[dec0 >= .5] = 1.
-        dec0[dec0 <= .5] = 0.
-        return dec0
+        output = torch.sigmoid(dec0)
+        # dec0[dec0 >= .5] = 1.
+        # dec0[dec0 <= .5] = 0.
+        return output
