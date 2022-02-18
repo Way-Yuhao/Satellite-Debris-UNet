@@ -199,6 +199,7 @@ def train_dev(net, tb, load_weights, pre_trained_params_path=None):
     save_network_weights(net, ep="{}_FINAL".format(epoch))
     return
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Specify target GPU, else the one defined in config.py will be used.')
     parser.add_argument('--gpu', type=int, help='cuda:$')
