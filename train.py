@@ -28,8 +28,8 @@ num_workers_train = 16
 batch_size = 8
 
 "Hyper Parameters"
-init_lr = 1e-3
-epoch = 2000
+init_lr = 5e-4
+epoch = 500
 PROB_THRESHOLD = .5
 
 
@@ -102,7 +102,7 @@ def train(net, tb, load_weights, pre_trained_params_path=None):
     running_train_loss = 0.0
     train_input, train_output, train_label = None, None, None
     for ep in range(epoch):
-        print("Epoch ", ep)
+        print("{}-{} | Epoch {}".format(model_name, version, ep))
         train_iter = iter(train_loader)
         for _ in tqdm(range(train_num_mini_batches)):
             train_input, train_label = train_iter.next()
@@ -141,7 +141,7 @@ def parse_args():
 def main():
     global version, model_name, CUDA_DEVICE
     CUDA_DEVICE = parse_args()
-    model_name, version = "unet16", "v0.6.7-re"
+    model_name, version = "unet16", "v0.6.10"
     param_to_load = None
     tb = SummaryWriter('./runs/' + model_name + '-' + version)
     # net = UNet11(pretrained=True)
