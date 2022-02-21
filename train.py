@@ -29,7 +29,7 @@ num_workers_train = 18
 batch_size = 8
 
 "Hyper Parameters"
-init_lr = 5e-4
+init_lr = 1e-4
 epoch = 500
 PROB_THRESHOLD = .5  # for visualizing inference output
 
@@ -67,11 +67,11 @@ def compute_loss(output, label):
 
     bce_criterion = nn.BCELoss()
     bce_loss = bce_criterion(output, label)
-    jaccard_criterion = JaccardIndex(num_classes=2).to(CUDA_DEVICE)
+    jaccard_criterion = JaccardIndex(num_classes=2, threshold=PROB_THRESHOLD).to(CUDA_DEVICE)
     iou_loss = jaccard_criterion(output, label.type(torch.int8))
     iou_loss.requires_grad = True
-    total_loss = bce_loss + iou_loss
-    return total_loss
+    total_loss = bce_loss - torch.log(iou_loss)
+    return total_loss, bce_loss, iou_loss
 
 
 def tensorboard_vis(tb, ep, mode='train', input_=None, output=None, label=None):
@@ -94,43 +94,43 @@ def tensorboard_vis(tb, ep, mode='train', input_=None, output=None, label=None):
     return
 
 
-def train(net, tb, load_weights, pre_trained_params_path=None):
-    print_params()
-    net.to(CUDA_DEVICE)
-    net.train()
-    if load_weights:
-        load_network_weights(net, pre_trained_params_path)
-
-    train_loader = load_data(p.join(indira_dataset_path, "train"))
-    train_num_mini_batches = len(train_loader)
-    # optimizer = optim.SGD(net.parameters(), lr=init_lr, momentum=.5)
-    optimizer = optim.Adam(net.parameters(), lr=init_lr)
-    running_train_loss = 0.0
-    train_input, train_output, train_label = None, None, None
-    for ep in range(epoch):
-        print("{}-{} | Epoch {}".format(model_name, version, ep))
-        train_iter = iter(train_loader)
-        for _ in tqdm(range(train_num_mini_batches)):
-            train_input, train_label = train_iter.next()
-            train_input, train_label = train_input.to(CUDA_DEVICE), train_label.to(CUDA_DEVICE)
-            # optimizer.zero_grad()
-            train_output = net(train_input)
-            train_loss = compute_loss(train_output, train_label)
-            train_loss.backward()
-            optimizer.step()
-            running_train_loss += train_loss.item()
-
-        # record loss values after each epoch
-        cur_train_loss = running_train_loss / train_num_mini_batches
-        print("train loss = {:.4}".format(cur_train_loss))
-        tb.add_scalar('loss/train', cur_train_loss, ep)
-
-        if ep % 5 == 0:
-            tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_label)
-        running_train_loss = 0.0
-    print("finished training")
-    save_network_weights(net, ep="{}_FINAL".format(epoch))
-    return
+# def train(net, tb, load_weights, pre_trained_params_path=None):
+#     print_params()
+#     net.to(CUDA_DEVICE)
+#     net.train()
+#     if load_weights:
+#         load_network_weights(net, pre_trained_params_path)
+#
+#     train_loader = load_data(p.join(indira_dataset_path, "train"))
+#     train_num_mini_batches = len(train_loader)
+#     # optimizer = optim.SGD(net.parameters(), lr=init_lr, momentum=.5)
+#     optimizer = optim.Adam(net.parameters(), lr=init_lr)
+#     running_train_loss = 0.0
+#     train_input, train_output, train_label = None, None, None
+#     for ep in range(epoch):
+#         print("{}-{} | Epoch {}".format(model_name, version, ep))
+#         train_iter = iter(train_loader)
+#         for _ in tqdm(range(train_num_mini_batches)):
+#             train_input, train_label = train_iter.next()
+#             train_input, train_label = train_input.to(CUDA_DEVICE), train_label.to(CUDA_DEVICE)
+#             # optimizer.zero_grad()
+#             train_output = net(train_input)
+#             train_loss = compute_loss(train_output, train_label)
+#             train_loss.backward()
+#             optimizer.step()
+#             running_train_loss += train_loss.item()
+#
+#         # record loss values after each epoch
+#         cur_train_loss = running_train_loss / train_num_mini_batches
+#         print("train loss = {:.4}".format(cur_train_loss))
+#         tb.add_scalar('loss/train', cur_train_loss, ep)
+#
+#         if ep % 5 == 0:
+#             tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_label)
+#         running_train_loss = 0.0
+#     print("finished training")
+#     save_network_weights(net, ep="{}_FINAL".format(epoch))
+#     return
 
 
 def train_dev(net, tb, load_weights, pre_trained_params_path=None):
@@ -158,7 +158,9 @@ def train_dev(net, tb, load_weights, pre_trained_params_path=None):
                                                                                            len(dev_loader)))
     train_num_mini_batches, dev_num_mini_batches = len(train_loader), len(dev_loader)
     optimizer = optim.Adam(net.parameters(), lr=init_lr)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=.98)
     running_train_loss, running_dev_loss = 0.0, 0.0
+    running_train_bce, running_train_iou = 0.0, 0.0
     train_input, train_output, train_label = None, None, None
 
     for ep in range(epoch):
@@ -170,10 +172,13 @@ def train_dev(net, tb, load_weights, pre_trained_params_path=None):
             train_input, train_label = train_input.to(CUDA_DEVICE), train_label.to(CUDA_DEVICE)
             # optimizer.zero_grad()
             train_output = net(train_input)
-            train_loss = compute_loss(train_output, train_label)
+            train_loss, train_bce, train_iou = compute_loss(train_output, train_label)
             train_loss.backward()
             optimizer.step()
             running_train_loss += train_loss.item()
+            running_train_bce += train_bce.item()
+            running_train_iou += train_iou.item()
+
 
         # DEV
         with torch.no_grad():
@@ -181,19 +186,26 @@ def train_dev(net, tb, load_weights, pre_trained_params_path=None):
                 dev_input, dev_label = dev_iter.next()
                 dev_input, dev_label = dev_input.to(CUDA_DEVICE), dev_label.to(CUDA_DEVICE)
                 dev_output = net(dev_input)
-                dev_loss = compute_loss(dev_output, dev_label)
+                dev_loss, _, _ = compute_loss(dev_output, dev_label)
                 running_dev_loss += dev_loss.item()
 
         # record loss values after each epoch
         cur_train_loss = running_train_loss / train_num_mini_batches
+        cur_train_bce = running_train_bce / train_num_mini_batches
+        cur_train_iou = running_train_iou / train_num_mini_batches
         cur_dev_loss = running_dev_loss / dev_num_mini_batches
         print("train loss = {:.4} | val loss = {:.4}".format(cur_train_loss, cur_dev_loss))
         tb.add_scalar('loss/train', cur_train_loss, ep)
+        tb.add_scalar('loss/train_bce', cur_train_bce, ep)
+        tb.add_scalar('loss/train_iou', cur_train_iou, ep)
         tb.add_scalar('loss/dev', cur_dev_loss, ep)
+        tb.add_scalar('loss/lr', scheduler._last_lr[0], ep)
         if ep % 5 == 0:
             tensorboard_vis(tb, ep, mode='train', input_=train_input, output=train_output, label=train_label)
             tensorboard_vis(tb, ep, mode='dev', input_=dev_input, output=dev_output, label=dev_label)
         running_train_loss, running_dev_loss = 0.0, 0.0
+        running_train_bce, running_train_iou = 0.0, 0.0
+        scheduler.step()
 
     print("finished training")
     save_network_weights(net, ep="{}_FINAL".format(epoch))
@@ -214,7 +226,7 @@ def parse_args():
 def main():
     global version, model_name, CUDA_DEVICE
     CUDA_DEVICE = parse_args()
-    model_name, version = "unet16", "v0.8.0"
+    model_name, version = "unet16", "v0.10.3"
     param_to_load = None
     tb = SummaryWriter('./runs/' + model_name + '-' + version)
     # net = UNet11(pretrained=True)
